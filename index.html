@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Falso o verdadero</title>
+	<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+	<nav>
+		<ul>
+			<li id="jugador"></li>
+			<li id="puntaje">2 Ingenieros dijeron</li>
+			<li id="tiempo"></li>
+		</ul>	
+	</nav>
+	<div id="juego">
+		<div id="marcador"></div>
+		<div id="linea"></div>
+		<div id="pregunta">Pregunta</div>
+	</div>
+	<div id="inicio">
+		<div class="izquierda">
+			<b>Instrucciones:</b>
+			<ol>
+				<li>Pulsa el botón para comenzar.</li>
+				<li>Antes de responder una pregunta deberás poner a prueba tu habilidad con alguna de tus manos, deberás alejar o acercar tu mano al control de manera horizontal, para hacer coincidir la línea blanca con la negra que estará en tu pantalla.</li>
+				<li>Una vez cumplido el paso anterior, aparecerá una pregunta, la cual deberás contestarla con los sensores del control, de lado derecho, es Si, de lado izquierdo indica No.</li>
+				<li>En caso este correcta tu respuesta se te darán puntos.</li>
+				<li>Deberás contestar el mayor número de preguntas correctas en un tiempo establecido (1 minuto cada jugador).</li>
+				<li>Al término de tu tiempo será el turno del siguiente jugador.</li>
+				<li>El juego termina cuando cada jugador haya tenido su turno, y el que tenga más puntos, gana.</li>
+				<li>Suerte.</li>
+			</ol>
+		</div>
+		<div class="derecha">
+			<svg aria-hidden="true" data-prefix="fas" data-icon="check-circle" class="svg-inline--fa fa-check-circle fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256c0 136.967-111.033 248-248 248S8 392.967 8 256 119.033 8 256 8s248 111.033 248 248zM227.314 387.314l184-184c6.248-6.248 6.248-16.379 0-22.627l-22.627-22.627c-6.248-6.249-16.379-6.249-22.628 0L216 308.118l-70.059-70.059c-6.248-6.248-16.379-6.248-22.628 0l-22.627 22.627c-6.248 6.248-6.248 16.379 0 22.627l104 104c6.249 6.249 16.379 6.249 22.628.001z"></path></svg>
+			<svg aria-hidden="true" data-prefix="fas" data-icon="times-circle" class="svg-inline--fa fa-times-circle fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm121.6 313.1c4.7 4.7 4.7 12.3 0 17L338 377.6c-4.7 4.7-12.3 4.7-17 0L256 312l-65.1 65.6c-4.7 4.7-12.3 4.7-17 0L134.4 338c-4.7-4.7-4.7-12.3 0-17l65.6-65-65.6-65.1c-4.7-4.7-4.7-12.3 0-17l39.6-39.6c4.7-4.7 12.3-4.7 17 0l65 65.7 65.1-65.6c4.7-4.7 12.3-4.7 17 0l39.6 39.6c4.7 4.7 4.7 12.3 0 17L312 256l65.6 65.1z"></path></svg>
+		</div>
+	</div>
+	<footer id="hint">
+		Presiona el botón para iniciar
+	</footer>
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+		document.getElementById('inicio').classList.toggle('fade-in');
+		document.querySelector('.fa-check-circle').classList.toggle('vibrate-1');
+		document.querySelector('.fa-times-circle').classList.toggle('vibrate-1');
+		const socket = io();
+		let al = 0;
+		const rojo = '#fc4b54';
+		const azul = '#2abbec';
+		const verde = '#00ff5d';
+		const naranja = '#fd882d';
+		let turno = false;
+		let puntajes = [0 ,0];
+		let time = 60;
+		let fun;
+		socket.on('arduino:data',data=>{
+			document.body.style.backgroundColor = (!turno) ? azul : naranja;
+			let valor = data.value.split(" ");
+			document.getElementById('jugador').innerText = (!turno) ? "Jugador 1" : "Jugador 2";
+			document.getElementById('puntaje').innerText = (!turno) ? `${puntajes[0]} ` : `${puntajes[1]} `;
+			if(valor[0].charAt(0) === 'D'){
+				document.getElementById('marcador').style.opacity = 1;
+				document.getElementById('linea').style.opacity = 1;
+				document.getElementById('pregunta').innerText = '';
+				let ra = parseInt(valor[2]);
+				let as = mapa(ra,10,40,150,700);
+				al = parseInt(valor[1]);
+				let a = mapa(al, 10, 40,150, 700);
+				document.getElementById('marcador').style.top = `${as}px`;
+				document.getElementById('linea').style.top = `${a}px`;
+				document.getElementById('hint').innerText = "Mueve tu mano para llevar la linea blanca a la negra";
+			}else if(valor[0].charAt(0) === 'P'){
+				document.getElementById('pregunta').classList.toggle('fade-in');
+				document.getElementById('pregunta').innerText = data.value.substring(2);
+				document.getElementById('marcador').style.opacity = 0;
+				document.getElementById('linea').style.opacity = 0;
+				document.getElementById('hint').innerText = "Pon tu mano encima del botón para accionarlo";
+			}else if(valor[0].charAt(0) === 'C'){
+				new Audio('correct.wav').play();
+				document.body.style.backgroundColor = verde;
+				document.getElementById('puntaje').innerText = `${valor[1]}`;
+				puntajes[(!turno) ? 0 : 1] += 1;
+			}else if(valor[0].charAt(0) === 'I'){
+				new Audio('wrong.wav').play();
+				document.body.style.backgroundColor = rojo;
+			}else if(valor[0].charAt(0) === 'T'){
+				turno = !turno;
+				document.body.style.backgroundColor = 'black';
+				document.getElementById('pregunta').classList.toggle('fade-in');
+				document.getElementById('pregunta').innerText = `${(!turno) ? "Jugador 1" : "Jugador 2"} preparate`;
+				document.getElementById('marcador').style.opacity = 0;
+				document.getElementById('linea').style.opacity = 0;
+				document.getElementById('hint').innerText = "¿Listo?";
+				time = 11;
+			}else if(valor[0].charAt(0) === 'F'){
+				const ganador = parseInt(valor[3]);
+				if(ganador)
+					document.body.style.backgroundColor = (ganador === 1) ? azul : naranja;
+				else
+					document.body.style.backgroundColor = 'black';
+				
+				document.getElementById('pregunta').innerText = data.value.substring(4);
+				document.getElementById('marcador').style.opacity = 0;
+				document.getElementById('linea').style.opacity = 0;
+				document.getElementById('hint').classList.toggle('blink-1');
+				document.getElementById('hint').innerText = "Para jugar de nuevo, presiona el botón en el control";
+				clearInterval(fun);
+				document.getElementById('tiempo').innerText = `NA`;
+				turno = !turno;
+			}else if(valor[0].charAt(0) === 'E'){
+				time = 60;
+				document.getElementById('inicio').style.display = 'none';
+				document.getElementById('juego').style.display = 'block';
+				document.getElementById('tiempo').innerText = `${time} s`;
+				fun = setInterval(()=>{
+					time--;
+					if(time < 5)
+						new Audio('tick.wav').play();
+					document.getElementById('tiempo').innerText = `${time} s`;
+					if(time == 1)
+						time = 61;
+				},1000);
+			}
+		});
+		const mapa = (value, low1, high1, low2, high2)=>{
+			return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+		}; 
+	</script>
+</body>
+</html>
