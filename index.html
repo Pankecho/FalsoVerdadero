@@ -57,6 +57,7 @@
 		let fun;
 		socket.on('arduino:data',data=>{
 			document.body.style.backgroundColor = (!turno) ? azul : naranja;
+			document.getElementById('inicio').style.display = 'none';
 			let valor = data.value.split(" ");
 			document.getElementById('jugador').innerText = (!turno) ? "Jugador 1" : "Jugador 2";
 			document.getElementById('puntaje').innerText = (!turno) ? `${puntajes[0]} ` : `${puntajes[1]} `;
